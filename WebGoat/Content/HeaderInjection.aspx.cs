@@ -6,7 +6,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Collections;
 using System.Collections.Specialized;
-
+using System.Net;
 namespace OWASP.WebGoat.NET
 {
     public partial class HeaderInjection : System.Web.UI.Page
@@ -30,7 +30,7 @@ namespace OWASP.WebGoat.NET
 
 
             //Headers
-            lblHeaders.Text = Request.Headers.ToString().Replace("&", "<br />");
+            lblHeaders.Text = WebUtility.HtmlEncode(Request.Headers.ToString()).Replace("&", "<br />");
 
             //Cookies
             ArrayList colCookies = new ArrayList();
