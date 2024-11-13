@@ -23,9 +23,10 @@ namespace OWASP.WebGoat.NET.WebGoatCoins
             //context.Response.Write("Hello World");
 
             string query = context.Request["query"];
+            string encodedQuery = System.Net.WebUtility.HtmlEncode(query);
             
-            DataSet ds = du.GetCustomerEmails(query);
-            string json = Encoder.ToJSONSAutocompleteString(query, ds.Tables[0]);
+            DataSet ds = du.GetCustomerEmails(encodedQuery);
+            string json = Encoder.ToJSONSAutocompleteString(encodedQuery, ds.Tables[0]);
 
             if (json != null && json.Length > 0)
             {
