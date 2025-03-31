@@ -70,10 +70,26 @@ namespace OWASP.WebGoat.NET
 			RunSQLFromFile (cn, filename);
 		}
 		
+		private bool IsValidSQL(string sql)
+		{
+			// Implement validation logic here
+			// For simplicity, let's assume we only allow SELECT, INSERT, UPDATE, DELETE statements
+			string[] allowedCommands = { "SELECT", "INSERT", "UPDATE", "DELETE" };
+			string trimmedSql = sql.Trim().ToUpper();
+			return allowedCommands.Any(cmd => trimmedSql.StartsWith(cmd));
+		}
+		
 		private string DoNonQuery (String SQL, SqliteConnection conn)
 		{
-			var cmd = new SqliteCommand (SQL, conn);
 			var output = string.Empty;
+			
+			if (!IsValidSQL(SQL))
+			{
+				output += "<br/>Invalid SQL Command: " + SQL;
+				return output;
+			}
+			
+			var cmd = new SqliteCommand (SQL, conn);
 			
 			try {
 				cmd.ExecuteNonQuery ();
