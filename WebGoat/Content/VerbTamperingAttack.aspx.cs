@@ -1,6 +1,7 @@
 
 using System;
 using System.Web;
+using System.Net;
 using System.Web.UI;
 
 namespace OWASP.WebGoat.NET
@@ -11,7 +12,7 @@ namespace OWASP.WebGoat.NET
         {
             if (Request.QueryString["message"] != null)
             {
-                VerbTampering.tamperedMessage = Request.QueryString["message"];
+                VerbTampering.tamperedMessage = System.Net.WebUtility.HtmlEncode(Request.QueryString["message"]);
             }
         } 
     }
