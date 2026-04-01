@@ -1039,18 +1039,8 @@ namespace TechInfoSystems.Data.SQLite
 			switch (serializeAs) {
 			
 				case SettingsSerializeAs.Binary:
-					byte[] buf = Convert.FromBase64String(attValue);
-					MemoryStream ms = null;
-					try
-					{
-						ms = new MemoryStream(buf);
-						return (new BinaryFormatter()).Deserialize(ms);
-					}
-					finally
-					{
-						if (ms != null)
-							ms.Close();
-					}
+					// Prevent unsafe deserialization: do NOT use BinaryFormatter for untrusted input.
+					throw new NotSupportedException("Binary deserialization of profile properties is not supported and poses a severe security risk.");
 
 				
 			case SettingsSerializeAs.Xml:
