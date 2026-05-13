@@ -4,29 +4,26 @@ using log4net;
 using System.Reflection;
 using System.IO;
 using System.Threading;
-using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace OWASP.WebGoat.NET.App_Code
 {
     public class Util
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly HashSet<string> AllowedClientExecutables = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "mysql",
-            "mysql.exe",
-            "sqlite3",
-            "sqlite3.exe"
-        };
-        private static readonly char[] DisallowedArgumentChars = { '&', '|', ';', '<', '>', '`', '\r', '\n', '\0' };
+        private static readonly char[] DisallowedArgumentChars = { '&', '|', ';', '<', '>', '`', '$', '*', '?', '(', ')', '[', ']', '{', '}', '\r', '\n', '\0' };
+        private static readonly Regex AllowedArgumentPattern = new Regex("^[a-zA-Z0-9_\\\\.\\\\-\\\\/:=\\\"' ]*$");
         
         public static int RunProcessWithInput(string cmd, string args, string input)
         {
+            string safeExecutableName = GetSafeExecutableName(cmd);
+            string safeArguments = GetSafeArguments(args);
+
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
                 WorkingDirectory = Settings.RootDir,
-                FileName = GetSafeExecutableName(cmd),
-                Arguments = GetSafeArguments(args),
+                FileName = safeExecutableName,
+                Arguments = safeArguments,
                 UseShellExecute = false,
                 RedirectStandardInput = true,
                 RedirectStandardError = true,
@@ -102,11 +99,20 @@ namespace OWASP.WebGoat.NET.App_Code
         private static string GetSafeExecutableName(string cmd)
         {
             string executableName = Path.GetFileName(cmd);
+            if (string.IsNullOrEmpty(executableName))
+                throw new ArgumentException("Database client executable is required.", "cmd");
 
-            if (!AllowedClientExecutables.Contains(executableName))
-                throw new ArgumentException("Unsupported database client executable.", "cmd");
-
-            return cmd;
+            switch (executableName.ToLowerInvariant())
+            {
+                case "mysql":
+                case "mysql.exe":
+                    return "mysql";
+                case "sqlite3":
+                case "sqlite3.exe":
+                    return "sqlite3";
+                default:
+                    throw new ArgumentException("Unsupported database client executable.", "cmd");
+            }
         }
 
         private static string GetSafeArguments(string args)
@@ -114,8 +120,8 @@ namespace OWASP.WebGoat.NET.App_Code
             if (string.IsNullOrEmpty(args))
                 return string.Empty;
 
-            if (args.IndexOfAny(DisallowedArgumentChars) >= 0)
-                throw new ArgumentException("Invalid characters in process arguments.", "args");
+            if (args.IndexOfAny(DisallowedArgumentChars) >= 0 || !AllowedArgumentPattern.IsMatch(args))
+                throw new ArgumentException("Invalid characters in process arguments. Disallowed characters include shell metacharacters and control characters.", "args");
 
             return args;
         }
