@@ -4,20 +4,29 @@ using log4net;
 using System.Reflection;
 using System.IO;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace OWASP.WebGoat.NET.App_Code
 {
     public class Util
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly HashSet<string> AllowedClientExecutables = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "mysql",
+            "mysql.exe",
+            "sqlite3",
+            "sqlite3.exe"
+        };
+        private static readonly char[] DisallowedArgumentChars = { '&', '|', ';', '<', '>', '`', '\r', '\n', '\0' };
         
         public static int RunProcessWithInput(string cmd, string args, string input)
         {
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
                 WorkingDirectory = Settings.RootDir,
-                FileName = cmd,
-                Arguments = args,
+                FileName = GetSafeExecutableName(cmd),
+                Arguments = GetSafeArguments(args),
                 UseShellExecute = false,
                 RedirectStandardInput = true,
                 RedirectStandardError = true,
@@ -89,6 +98,26 @@ namespace OWASP.WebGoat.NET.App_Code
                 }
             }
         }
+
+        private static string GetSafeExecutableName(string cmd)
+        {
+            string executableName = Path.GetFileName(cmd);
+
+            if (!AllowedClientExecutables.Contains(executableName))
+                throw new ArgumentException("Unsupported database client executable.", "cmd");
+
+            return cmd;
+        }
+
+        private static string GetSafeArguments(string args)
+        {
+            if (string.IsNullOrEmpty(args))
+                return string.Empty;
+
+            if (args.IndexOfAny(DisallowedArgumentChars) >= 0)
+                throw new ArgumentException("Invalid characters in process arguments.", "args");
+
+            return args;
+        }
     }
 }
-
