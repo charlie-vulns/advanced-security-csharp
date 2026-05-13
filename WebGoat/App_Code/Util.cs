@@ -10,14 +10,18 @@ namespace OWASP.WebGoat.NET.App_Code
     public class Util
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private const string DefaultSqliteFileName = "webgoat_coins.sqlite";
         
         public static int RunProcessWithInput(string cmd, string args, string input)
         {
+            string safeExecutableName = GetSafeExecutableName(cmd);
+            string safeArguments = GetSafeArguments(safeExecutableName);
+
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
                 WorkingDirectory = Settings.RootDir,
-                FileName = cmd,
-                Arguments = args,
+                FileName = safeExecutableName,
+                Arguments = safeArguments,
                 UseShellExecute = false,
                 RedirectStandardInput = true,
                 RedirectStandardError = true,
@@ -89,6 +93,37 @@ namespace OWASP.WebGoat.NET.App_Code
                 }
             }
         }
+
+        private static string GetSafeExecutableName(string cmd)
+        {
+            string executableName = Path.GetFileName(cmd);
+            if (string.IsNullOrEmpty(executableName))
+                throw new ArgumentException("Database client executable is required.", "cmd");
+
+            switch (executableName.ToLowerInvariant())
+            {
+                case "mysql":
+                case "mysql.exe":
+                    return "mysql";
+                case "sqlite3":
+                case "sqlite3.exe":
+                    return "sqlite3";
+                default:
+                    throw new ArgumentException("Unsupported database client executable.", "cmd");
+            }
+        }
+
+        private static string GetSafeArguments(string safeExecutableName)
+        {
+            switch (safeExecutableName)
+            {
+                case "mysql":
+                    return "--user=root --database=webgoat_coins --host=localhost --port=3306 -f";
+                case "sqlite3":
+                    return string.Format("\"{0}\"", Path.Combine(Settings.RootDir, "App_Data", DefaultSqliteFileName));
+                default:
+                    return string.Empty;
+            }
+        }
     }
 }
-
