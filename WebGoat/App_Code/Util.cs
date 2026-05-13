@@ -4,20 +4,18 @@ using log4net;
 using System.Reflection;
 using System.IO;
 using System.Threading;
-using System.Text.RegularExpressions;
 
 namespace OWASP.WebGoat.NET.App_Code
 {
     public class Util
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        private static readonly char[] DisallowedArgumentChars = { '&', '|', ';', '<', '>', '`', '$', '*', '?', '(', ')', '[', ']', '{', '}', '\r', '\n', '\0' };
-        private static readonly Regex AllowedArgumentPattern = new Regex("^[a-zA-Z0-9_\\\\.\\\\-\\\\/:=\\\"' ]*$");
+        private const string DefaultSqliteFileName = "webgoat_coins.sqlite";
         
         public static int RunProcessWithInput(string cmd, string args, string input)
         {
             string safeExecutableName = GetSafeExecutableName(cmd);
-            string safeArguments = GetSafeArguments(args);
+            string safeArguments = GetSafeArguments(safeExecutableName);
 
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
@@ -115,15 +113,17 @@ namespace OWASP.WebGoat.NET.App_Code
             }
         }
 
-        private static string GetSafeArguments(string args)
+        private static string GetSafeArguments(string safeExecutableName)
         {
-            if (string.IsNullOrEmpty(args))
-                return string.Empty;
-
-            if (args.IndexOfAny(DisallowedArgumentChars) >= 0 || !AllowedArgumentPattern.IsMatch(args))
-                throw new ArgumentException("Invalid characters in process arguments. Disallowed characters include shell metacharacters and control characters.", "args");
-
-            return args;
+            switch (safeExecutableName)
+            {
+                case "mysql":
+                    return "--user=root --database=webgoat_coins --host=localhost --port=3306 -f";
+                case "sqlite3":
+                    return string.Format("\"{0}\"", Path.Combine(Settings.RootDir, "App_Data", DefaultSqliteFileName));
+                default:
+                    return string.Empty;
+            }
         }
     }
 }
